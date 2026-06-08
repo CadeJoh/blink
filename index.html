@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>BLINK — Fantasy Football Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070a12;
+  --bg2:#0b101c;
+  --panel:#10172a;
+  --panel2:#141d33;
+  --line:rgba(255,255,255,.07);
+  --line2:rgba(255,255,255,.12);
+  --txt:#eaf0ff;
+  --muted:#8893ab;
+  --faint:#5b6680;
+  --acc:#c8ff3d;        /* electric lime */
+  --acc2:#9ae600;
+  --warn:#ff5a3c;
+  --qb:#ff4d6d;
+  --rb:#22d3a6;
+  --wr:#3b9bff;
+  --te:#ffae34;
+  --k:#b07cff;
+  --dst:#7a8aa8;
+  --shadow:0 24px 60px -20px rgba(0,0,0,.75);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(200,255,61,.07), transparent 60%),
+    radial-gradient(700px 500px at -5% 10%, rgba(59,155,255,.08), transparent 55%),
+    var(--bg);
+  color:var(--txt);
+  font-family:'Manrope',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+/* subtle grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+h1,h2,h3,h4,.disp{font-family:'Saira',sans-serif;letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#222c45;border-radius:20px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#2c3a5c}
+
+/* ---------- App shell ---------- */
+.app{display:grid;grid-template-columns:74px 1fr;min-height:100vh;position:relative;z-index:1}
+
+.rail{
+  position:sticky;top:0;height:100vh;
+  background:linear-gradient(180deg,var(--bg2),#070a12);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;
+  padding:16px 0;gap:6px;z-index:30;
+}
+.brand-mark{
+  width:42px;height:42px;border-radius:13px;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--acc),var(--acc2));
+  color:#0a0e0a;font-family:'Saira';font-weight:800;font-size:22px;
+  box-shadow:0 8px 22px -6px rgba(200,255,61,.5);margin-bottom:14px;
+}
+.nav-btn{
+  width:50px;height:50px;border-radius:14px;display:grid;place-items:center;
+  color:var(--muted);position:relative;transition:.18s;
+}
+.nav-btn svg{width:22px;height:22px}
+.nav-btn .lbl{
+  position:absolute;left:60px;background:#1a2236;color:#fff;font-size:12px;font-weight:600;
+  padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;
+  transform:translateX(-6px);transition:.16s;box-shadow:var(--shadow);border:1px solid var(--line2);z-index:50;
+}
+.nav-btn:hover{color:var(--txt);background:rgba(255,255,255,.04)}
+.nav-btn:hover .lbl{opacity:1;transform:translateX(0)}
+.nav-btn.active{color:var(--acc);background:rgba(200,255,61,.1)}
+.nav-btn.active::before{content:"";position:absolute;left:-1px;top:11px;bottom:11px;width:3px;border-radius:3px;background:var(--acc)}
+.rail-spacer{flex:1}
+
+/* ---------- Topbar ---------- */
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;
+  padding:14px 26px;background:rgba(7,10,18,.78);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.wordmark{font-family:'Saira';font-weight:800;font-size:20px;letter-spacing:.04em}
+.wordmark span{color:var(--acc)}
+.season-pill{
+  font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--acc);
+  border:1px solid rgba(200,255,61,.3);background:rgba(200,255,61,.08);
+  padding:4px 9px;border-radius:20px;
+}
+.search{
+  margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;padding:9px 13px;min-width:240px;transition:.18s;
+}
+.search:focus-within{border-color:var(--acc);box-shadow:0 0 0 3px rgba(200,255,61,.12)}
+.search input{background:none;border:none;outline:none;color:var(--txt);width:100%;font-size:14px}
+.search svg{width:16px;height:16px;color:var(--muted)}
+.upgrade{
+  background:linear-gradient(150deg,var(--acc),var(--acc2));color:#0a0e0a;font-weight:800;
+  padding:9px 16px;border-radius:11px;font-size:13px;letter-spacing:.02em;transition:.18s;
+  box-shadow:0 8px 22px -8px rgba(200,255,61,.6);
+}
+.upgrade:hover{transform:translateY(-1px);box-shadow:0 12px 26px -8px rgba(200,255,61,.7)}
+
+.view{padding:26px;max-width:1320px;width:100%;margin:0 auto;animation:fade .4s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.page-head{margin-bottom:20px}
+.page-head h1{font-size:34px;font-weight:800;margin:0 0 4px;display:flex;align-items:center;gap:12px}
+.page-head p{color:var(--muted);margin:0;font-size:14px}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--acc);text-transform:uppercase;margin-bottom:6px}
+
+/* ---------- Toggles / chips ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+.seg button{padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.02em;transition:.15s}
+.seg button:hover{color:var(--txt)}
+.seg button.on{background:var(--panel2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line2)}
+.seg.lime button.on{background:linear-gradient(150deg,var(--acc),var(--acc2));color:#0a0e0a;box-shadow:none}
+.seg-label{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-right:2px;align-self:center}
+
+.poschips{display:flex;flex-wrap:wrap;gap:7px}
+.poschip{
+  padding:7px 13px;border-radius:10px;font-size:12.5px;font-weight:700;letter-spacing:.03em;
+  border:1px solid var(--line);background:var(--panel);color:var(--muted);transition:.15s;
+}
+.poschip:hover{color:var(--txt);border-color:var(--line2)}
+.poschip.on{color:#0a0e0a;border-color:transparent}
+.poschip[data-pos="ALL"].on{background:var(--txt);color:#070a12}
+.poschip[data-pos="QB"].on{background:var(--qb)}
+.poschip[data-pos="RB"].on{background:var(--rb)}
+.poschip[data-pos="WR"].on{background:var(--wr)}
+.poschip[data-pos="TE"].on{background:var(--te)}
+.poschip[data-pos="K"].on{background:var(--k)}
+.poschip[data-pos="DST"].on{background:var(--dst);color:#fff}
+
+/* ---------- Cards / panels ---------- */
+.panel{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+
+/* ---------- Dashboard ---------- */
+.grid{display:grid;gap:18px}
+.stat-row{grid-template-columns:repeat(4,1fr)}
+.stat{padding:18px 20px;border-radius:16px;background:linear-gradient(155deg,var(--panel),var(--bg2));border:1px solid var(--line);position:relative;overflow:hidden}
+.stat .v{font-family:'Saira';font-weight:800;font-size:30px;line-height:1;margin:8px 0 3px}
+.stat .l{font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.stat .badge{font-size:11px;font-weight:700;color:var(--acc)}
+.stat::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,rgba(200,255,61,.12),transparent 70%)}
+
+.dash-grid{grid-template-columns:1.4fr 1fr;align-items:start}
+.movers{padding:18px 20px}
+.movers h3,.feat h3{font-size:15px;margin:0 0 14px;display:flex;align-items:center;gap:8px;font-weight:700}
+.mover{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.mover:last-child{border-bottom:none}
+.mover .arrow{font-family:'Saira';font-weight:800;font-size:14px;width:46px;text-align:center;border-radius:8px;padding:5px 0}
+.mover .up{background:rgba(34,211,166,.14);color:var(--rb)}
+.mover .down{background:rgba(255,77,109,.14);color:var(--qb)}
+.mover .nm{font-weight:700;font-size:14px}
+.mover .mt{font-size:11.5px;color:var(--muted)}
+.mover .spacer{flex:1}
+.feat-grid{grid-template-columns:1fr 1fr}
+.feat{padding:20px;cursor:pointer;transition:.18s;border:1px solid var(--line)}
+.feat:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:0 28px 60px -24px rgba(0,0,0,.8)}
+.feat .ico{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(200,255,61,.1);color:var(--acc);margin-bottom:12px}
+.feat .ico svg{width:22px;height:22px}
+.feat h3{margin-bottom:5px}
+.feat p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+
+/* ---------- Rankings table ---------- */
+.rk-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+.rk-head{display:grid;grid-template-columns:var(--cols);gap:0;padding:0 14px;background:var(--bg2);border-bottom:1px solid var(--line2);position:sticky;top:69px;z-index:10}
+.rk-head .th{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;padding:13px 8px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px}
+.rk-head .th.r{justify-content:flex-end}
+.rk-head .th .ar{opacity:0;font-size:9px}
+.rk-head .th.sorted{color:var(--acc)}
+.rk-head .th.sorted .ar{opacity:1}
+
+.tier-bar{
+  display:flex;align-items:center;gap:10px;padding:9px 16px;background:rgba(200,255,61,.05);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.tier-bar .tn{font-family:'Saira';font-weight:800;font-size:12.5px;letter-spacing:.12em;color:var(--acc);text-transform:uppercase}
+.tier-bar .tl{flex:1;height:1px;background:linear-gradient(90deg,rgba(200,255,61,.4),transparent)}
+
+.row{
+  display:grid;grid-template-columns:var(--cols);gap:0;padding:0 14px;align-items:center;
+  border-bottom:1px solid var(--line);transition:background .12s;position:relative;
+}
+.row:hover{background:rgba(255,255,255,.025)}
+.row.dragging{opacity:.4}
+.row.over{box-shadow:inset 0 2px 0 var(--acc)}
+.row .td{padding:11px 8px;font-size:14px}
+.row .td.r{text-align:right;justify-self:end}
+.handle{color:var(--faint);cursor:grab;display:flex;align-items:center}
+.handle:active{cursor:grabbing}
+.handle svg{width:14px;height:14px}
+.rk-num{font-family:'Saira';font-weight:800;font-size:16px;width:30px;text-align:center}
+.player-cell{display:flex;align-items:center;gap:11px;min-width:0}
+.pos-tag{font-family:'Saira';font-weight:800;font-size:11px;padding:4px 7px;border-radius:7px;min-width:38px;text-align:center;letter-spacing:.02em}
+.pos-QB{background:rgba(255,77,109,.16);color:var(--qb)}
+.pos-RB{background:rgba(34,211,166,.16);color:var(--rb)}
+.pos-WR{background:rgba(59,155,255,.16);color:var(--wr)}
+.pos-TE{background:rgba(255,174,52,.16);color:var(--te)}
+.pos-K{background:rgba(176,124,255,.16);color:var(--k)}
+.pos-DST{background:rgba(122,138,168,.18);color:#aeb9d0}
+.pname{font-weight:700;font-size:14px;line-height:1.15}
+.pmeta{font-size:11.5px;color:var(--muted)}
+.posrank{font-family:'Saira';font-weight:700;font-size:13px;color:var(--muted)}
+.valbar{height:6px;border-radius:6px;background:var(--panel2);overflow:hidden;width:74px}
+.valbar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--acc2),var(--acc))}
+.tierbtn{
+  opacity:0;position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);z-index:6;
+  font-size:10px;font-weight:800;letter-spacing:.06em;color:#0a0e0a;background:var(--acc);
+  padding:3px 9px;border-radius:20px;transition:.12s;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.4)
+}
+.row:hover .tierbtn{opacity:1}
+
+/* tier cards view */
+.tiercards{display:flex;flex-direction:column;gap:14px}
+.tcard{padding:14px 16px}
+.tcard .th{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.tcard .tt{font-family:'Saira';font-weight:800;font-size:14px;letter-spacing:.08em;color:var(--acc)}
+.tcard .cnt{font-size:11px;color:var(--muted);font-weight:600}
+.tchips{display:flex;flex-wrap:wrap;gap:8px}
+.tchip{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:7px 11px}
+.tchip .pos-tag{min-width:auto;padding:2px 6px;font-size:10px}
+.tchip .nm{font-weight:700;font-size:13px}
+
+/* ---------- Trade calculator ---------- */
+.trade-grid{display:grid;grid-template-columns:1fr 64px 1fr;gap:0;align-items:start}
+.tside{padding:18px}
+.tside h3{font-family:'Saira';font-weight:800;font-size:16px;margin:0 0 4px;letter-spacing:.04em}
+.tside .tot{font-size:12px;color:var(--muted);margin-bottom:14px}
+.tside .tot b{font-family:'Saira';font-size:22px;color:var(--txt);display:block;margin-top:2px}
+.vs{display:grid;place-items:center;align-self:center;height:100%}
+.vs .o{font-family:'Saira';font-weight:800;font-size:14px;color:var(--faint);background:var(--panel2);border:1px solid var(--line);width:46px;height:46px;border-radius:50%;display:grid;place-items:center}
+.drop{min-height:120px;border:1.5px dashed var(--line2);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;transition:.15s}
+.drop.empty{align-items:center;justify-content:center;color:var(--faint);font-size:13px;text-align:center}
+.tpick{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 11px;animation:fade .25s}
+.tpick .nm{font-weight:700;font-size:13.5px;line-height:1.1}
+.tpick .mt{font-size:11px;color:var(--muted)}
+.tpick .val{margin-left:auto;font-family:'Saira';font-weight:800;font-size:16px;color:var(--acc)}
+.tpick .x{color:var(--faint);font-size:18px;line-height:1;padding:0 2px}
+.tpick .x:hover{color:var(--warn)}
+.addbtn{border:1px dashed var(--line2);border-radius:11px;padding:10px;color:var(--muted);font-weight:700;font-size:13px;transition:.15s}
+.addbtn:hover{color:var(--acc);border-color:var(--acc)}
+.verdict{margin-top:18px;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+.verdict .meter{height:14px;display:flex}
+.verdict .meter .a{background:linear-gradient(90deg,var(--wr),#6fb8ff)}
+.verdict .meter .b{background:linear-gradient(90deg,#ff8a5c,var(--qb))}
+.verdict .vtxt{padding:14px 18px;text-align:center;font-family:'Saira';font-weight:800;font-size:15px;letter-spacing:.03em;background:var(--panel)}
+
+/* search dropdown for adding players */
+.psearch{position:relative}
+.psearch input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;color:var(--txt);outline:none;font-size:13.5px}
+.psearch input:focus{border-color:var(--acc)}
+.presults{position:absolute;top:48px;left:0;right:0;background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);max-height:260px;overflow:auto;z-index:40}
+.presults .pr{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line)}
+.presults .pr:hover{background:rgba(200,255,61,.07)}
+.presults .pr .val{margin-left:auto;font-family:'Saira';font-weight:700;color:var(--acc)}
+
+/* ---------- Mock draft ---------- */
+.draft-cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:18px}
+.cfg{padding:16px}
+.cfg label{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;display:block;margin-bottom:9px}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:34px;height:34px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:18px;font-weight:700;color:var(--txt);transition:.15s}
+.stepper button:hover{border-color:var(--acc);color:var(--acc)}
+.stepper .val{font-family:'Saira';font-weight:800;font-size:22px;min-width:34px;text-align:center}
+.bigbtn{
+  background:linear-gradient(150deg,var(--acc),var(--acc2));color:#0a0e0a;font-weight:800;
+  padding:13px 24px;border-radius:13px;font-size:15px;letter-spacing:.03em;transition:.18s;
+  box-shadow:0 12px 28px -10px rgba(200,255,61,.6);font-family:'Saira'
+}
+.bigbtn:hover{transform:translateY(-2px)}
+.bigbtn.ghost{background:var(--panel);color:var(--txt);box-shadow:none;border:1px solid var(--line2)}
+
+.draft-live{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start}
+.clock{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:14px;margin-bottom:14px;border:1px solid var(--line)}
+.clock.you{background:linear-gradient(120deg,rgba(200,255,61,.14),var(--panel));border-color:rgba(200,255,61,.35)}
+.clock.cpu{background:var(--panel)}
+.clock .lbl{font-family:'Saira';font-weight:800;font-size:17px;letter-spacing:.03em}
+.clock .sub{font-size:12px;color:var(--muted)}
+.clock .pickno{margin-left:auto;font-family:'Saira';font-weight:800;font-size:13px;color:var(--acc);background:rgba(200,255,61,.1);padding:6px 11px;border-radius:9px}
+.avail{max-height:540px;overflow:auto;border-radius:14px;border:1px solid var(--line)}
+.av-row{display:grid;grid-template-columns:34px 1fr auto auto;gap:10px;align-items:center;padding:9px 13px;border-bottom:1px solid var(--line);cursor:pointer;transition:.12s}
+.av-row:hover{background:rgba(200,255,61,.07)}
+.av-row .rk{font-family:'Saira';font-weight:800;color:var(--muted)}
+.av-row .adp{font-family:'JetBrains Mono';font-size:12px;color:var(--muted)}
+.av-row .pickme{font-size:11px;font-weight:800;color:var(--acc);opacity:0;letter-spacing:.05em}
+.av-row:hover .pickme{opacity:1}
+.roster .slot{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.roster .slot .pos{font-family:'Saira';font-weight:800;font-size:11px;color:var(--faint);width:40px;letter-spacing:.06em}
+.roster .slot .fill{font-weight:700;font-size:13.5px}
+.roster .slot .empty{color:var(--faint);font-style:italic;font-weight:500;font-size:13px}
+.log{max-height:240px;overflow:auto;padding:4px 0}
+.log .li{display:flex;gap:9px;padding:6px 14px;font-size:12.5px;border-bottom:1px solid var(--line)}
+.log .li .pk{font-family:'JetBrains Mono';color:var(--faint);min-width:38px}
+.log .li.mine{background:rgba(200,255,61,.06)}
+.log .li.mine .pk{color:var(--acc)}
+
+.section-title{font-family:'Saira';font-weight:800;font-size:13px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin:0 0 12px;padding:0 2px}
+
+.note{font-size:12px;color:var(--faint);margin-top:18px;text-align:center;line-height:1.6}
+
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .rail{position:fixed;bottom:0;top:auto;left:0;right:0;height:62px;width:100%;flex-direction:row;justify-content:space-around;border-right:none;border-top:1px solid var(--line);padding:0}
+  .brand-mark,.rail-spacer{display:none}
+  .nav-btn .lbl{display:none}
+  .main{padding-bottom:62px}
+  .stat-row{grid-template-columns:1fr 1fr}
+  .dash-grid,.feat-grid,.draft-live,.trade-grid{grid-template-columns:1fr}
+  .vs{display:none}
+  .search{min-width:0}
+}
+.syncbtn{background:var(--panel);border:1px solid var(--line2);color:var(--txt);font-weight:700;padding:9px 13px;border-radius:11px;font-size:13px;transition:.18s;display:flex;align-items:center;gap:7px}
+.syncbtn:hover{border-color:var(--acc);color:var(--acc)}
+.syncbtn.live{border-color:rgba(34,211,166,.5);color:var(--rb)}
+.syncbtn.busy{opacity:.6;pointer-events:none}
+.syncbtn .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.syncbtn.busy .dot{animation:spin 1s linear infinite;border-radius:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);z-index:100;
+  background:#141d33;border:1px solid var(--line2);color:var(--txt);padding:12px 18px;border-radius:13px;
+  font-size:13px;font-weight:600;box-shadow:var(--shadow);opacity:0;transition:.3s;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:900px){.syncbtn span.t{display:none}.toast{bottom:78px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT RAIL -->
+  <nav class="rail">
+    <div class="brand-mark">B</div>
+    <button class="nav-btn active" data-view="home"><span class="lbl">Home</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></button>
+    <button class="nav-btn" data-view="rankings"><span class="lbl">Rankings</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/></svg></button>
+    <button class="nav-btn" data-view="trade"><span class="lbl">Trade Calc</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg></button>
+    <button class="nav-btn" data-view="mock"><span class="lbl">Mock Draft</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4zM4 14h10v6H4z"/></svg></button>
+    <div class="rail-spacer"></div>
+    <button class="nav-btn"><span class="lbl">Account</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></button>
+  </nav>
+
+  <div class="main">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="wordmark">BL<span>INK</span></div>
+      <div class="season-pill">2026 SEASON</div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input id="globalSearch" placeholder="Search players…" autocomplete="off"/>
+      </div>
+      <button class="syncbtn" id="syncBtn"><span class="dot"></span><span class="t">Sync Live</span></button>
+      <button class="upgrade">⚡ Go Pro</button>
+    </header>
+
+    <div id="viewport"></div>
+  </div>
+</div>
+
+<script>
+/* ============================ DATA ============================ */
+/* Illustrative 2026 mock data — values approximate, fully editable in-app. */
+const TEAMS_BYE = {KC:10,BUF:7,PHI:5,DET:8,SF:14,DAL:7,MIA:12,CIN:10,BAL:7,HOU:6,
+  GB:5,MIN:6,LAR:8,ATL:5,SEA:8,JAX:8,LV:8,LAC:8,NYJ:9,WAS:14,TB:9,DEN:12,CLE:9,
+  CHI:5,IND:11,NO:11,TEN:10,ARI:8,NE:14,PIT:5,CAR:14,NYG:14};
+
+// rank, name, pos, team, adp, projPPG, lastPPG, age
+const RAW = [
+["Ja'Marr Chase","WR","CIN",1.2,22.4,21.8,26],
+["Bijan Robinson","RB","ATL",2.4,21.1,19.9,24],
+["Justin Jefferson","WR","MIN",3.1,21.8,20.2,27],
+["Saquon Barkley","RB","PHI",3.8,20.6,22.1,29],
+["CeeDee Lamb","WR","DAL",5.2,20.9,18.4,27],
+["Jahmyr Gibbs","RB","DET",6.0,19.8,19.1,24],
+["Amon-Ra St. Brown","WR","DET",7.1,19.4,18.0,26],
+["Malik Nabers","WR","NYG",8.3,18.9,17.2,23],
+["Christian McCaffrey","RB","SF",9.0,19.2,16.8,30],
+["Puka Nacua","WR","LAR",9.9,18.6,17.9,25],
+["Nico Collins","WR","HOU",11.4,17.8,17.1,27],
+["De'Von Achane","RB","MIA",12.1,18.4,17.6,24],
+["Brian Thomas Jr.","WR","JAX",13.0,17.2,16.4,23],
+["Ashton Jeanty","RB","LV",13.8,17.0,0,21],
+["Drake London","WR","ATL",15.2,16.9,15.8,25],
+["Derrick Henry","RB","BAL",16.0,17.6,18.9,32],
+["A.J. Brown","WR","PHI",16.9,17.1,15.2,29],
+["Jonathan Taylor","RB","IND",18.1,17.3,16.0,27],
+["Brock Bowers","TE","LV",18.8,15.8,14.9,23],
+["Josh Jacobs","RB","GB",20.2,16.4,16.7,28],
+["Tee Higgins","WR","CIN",21.0,15.9,14.6,27],
+["Garrett Wilson","WR","NYJ",22.4,15.6,14.1,25],
+["Ladd McConkey","WR","LAC",23.1,15.4,14.8,24],
+["Josh Allen","QB","BUF",24.0,24.8,25.1,30],
+["Bucky Irving","RB","TB",25.2,15.8,15.0,23],
+["Lamar Jackson","QB","BAL",26.1,25.4,26.2,29],
+["Jayden Daniels","QB","WAS",27.3,24.1,23.0,25],
+["Davante Adams","WR","LAR",28.0,15.0,14.4,33],
+["Marvin Harrison Jr.","WR","ARI",29.2,15.2,12.9,24],
+["Kyren Williams","RB","LAR",30.1,15.3,15.7,26],
+["Chase Brown","RB","CIN",31.4,15.1,14.0,25],
+["DK Metcalf","WR","PIT",32.0,14.6,13.8,28],
+["George Kittle","TE","SF",33.2,14.0,13.6,32],
+["Trey McBride","TE","ARI",34.0,13.8,13.1,26],
+["Jaxon Smith-Njigba","WR","SEA",35.1,14.4,13.2,24],
+["Breece Hall","RB","NYJ",36.3,14.8,13.0,25],
+["Jalen Hurts","QB","PHI",37.0,23.6,22.4,28],
+["DJ Moore","WR","CHI",38.2,14.0,12.8,29],
+["Terry McLaurin","WR","WAS",39.1,13.8,14.6,30],
+["James Cook","RB","BUF",40.0,14.2,13.9,26],
+["Mike Evans","WR","TB",41.3,13.6,14.2,33],
+["Patrick Mahomes","QB","KC",42.0,23.0,21.6,30],
+["Kenneth Walker III","RB","SEA",43.2,13.9,12.4,25],
+["Sam LaPorta","TE","DET",44.0,12.9,11.8,25],
+["Rashee Rice","WR","KC",45.1,13.4,12.0,25],
+["DeVonta Smith","WR","PHI",46.3,13.0,12.6,27],
+["Joe Burrow","QB","CIN",47.0,22.4,23.8,29],
+["Calvin Ridley","WR","TEN",48.2,12.6,12.1,31],
+["Jordan Addison","WR","MIN",49.0,12.4,11.9,24],
+["Aaron Jones","RB","MIN",50.1,13.2,12.7,31],
+["Tony Pollard","RB","TEN",51.3,12.8,12.0,29],
+["Xavier Worthy","WR","KC",52.0,12.2,10.8,22],
+["Jayden Reed","WR","GB",53.2,11.9,11.2,25],
+["David Montgomery","RB","DET",54.0,12.5,12.9,29],
+["Travis Kelce","TE","KC",55.1,11.4,12.0,36],
+["Courtland Sutton","WR","DEN",56.0,11.8,12.4,30],
+["Chuba Hubbard","RB","CAR",57.2,12.3,12.6,26],
+["Caleb Williams","QB","CHI",58.0,21.0,18.9,24],
+["RJ Harvey","RB","DEN",59.1,11.6,0,24],
+["Jameson Williams","WR","DET",60.2,11.5,11.0,25],
+["Bo Nix","QB","DEN",61.0,21.6,20.4,26],
+["Stefon Diggs","WR","NE",62.3,11.2,10.4,32],
+["Dallas Goedert","TE","PHI",63.0,10.6,10.1,31],
+["Brandon Aiyuk","WR","SF",64.2,11.0,9.8,28],
+["Jaylen Waddle","WR","MIA",65.0,11.3,11.6,27],
+["Zay Flowers","WR","BAL",66.1,11.4,11.7,25],
+["Patrick Mahomes II","QB","KC",999,0,0,30], // dummy filtered below
+["Kyle Pitts","TE","ATL",68.0,9.8,8.9,25],
+["Tucker Kraft","TE","GB",69.2,9.5,9.1,25],
+["Justin Fields","QB","NYJ",70.0,20.2,17.8,27],
+["Justin Tucker","K","BAL",120,9.0,9.4,36],
+["Harrison Butker","K","KC",122,8.8,9.0,31],
+["49ers D/ST","DST","SF",135,8.2,8.6,0],
+["Ravens D/ST","DST","BAL",137,8.5,9.1,0],
+];
+
+let PLAYERS = RAW
+  .filter(r=>r[3]!==999)
+  .map((r,i)=>({
+    id:'p'+i, name:r[0], pos:r[1], team:r[2], adp:r[3],
+    projPPG:r[4], lastPPG:r[5], age:r[6], bye:TEAMS_BYE[r[2]]||0
+  }));
+
+// assign baseline overall rank by adp, and a trade value (decaying curve)
+PLAYERS.sort((a,b)=>a.adp-b.adp);
+PLAYERS.forEach((p,i)=>{
+  p.rank=i+1;
+  p.value=Math.max(1,Math.round(105*Math.exp(-(i)/26)));
+});
+// positional rank
+function recomputePosRank(list){
+  const c={};
+  list.forEach(p=>{ c[p.pos]=(c[p.pos]||0)+1; p.posRank=p.pos+c[p.pos]; });
+}
+recomputePosRank(PLAYERS);
+
+/* ============================ STATE ============================ */
+const S = {
+  view:'home',
+  scoring:'HALF',
+  format:'REDRAFT',
+  posFilter:'ALL',
+  rankView:'TABLE',
+  search:'',
+  sortKey:'rank',
+  sortDir:1,
+  tiers:{}, // map id -> tier name (a tier break STARTS at this player)
+  // trade
+  tradeA:[], tradeB:[],
+  // mock draft
+  draft:null,
+  // live data (Sleeper)
+  live:false, syncing:false, liveMovers:null, syncMsg:'',
+};
+// seed a couple tiers
+S.tiers[PLAYERS[0].id]='Tier 1 · Elite';
+if(PLAYERS[5]) S.tiers[PLAYERS[5].id]='Tier 2 · Studs';
+if(PLAYERS[12]) S.tiers[PLAYERS[12].id]='Tier 3 · Building Blocks';
+if(PLAYERS[23]) S.tiers[PLAYERS[23].id]='Tier 4 · Value';
+if(PLAYERS[40]) S.tiers[PLAYERS[40].id]='Tier 5 · Upside';
+
+const $ = s=>document.querySelector(s);
+const vp = $('#viewport');
+const POSCOLOR={QB:'qb',RB:'rb',WR:'wr',TE:'te',K:'k',DST:'dst'};
+
+/* ============================ NAV ============================ */
+document.querySelectorAll('.nav-btn[data-view]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    S.view=b.dataset.view;
+    document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    render();
+  });
+});
+$('#globalSearch').addEventListener('input',e=>{
+  S.search=e.target.value.trim().toLowerCase();
+  if(S.view!=='rankings'){S.view='rankings';document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.view==='rankings'));}
+  render();
+});
+
+/* ============================ HELPERS ============================ */
+function posTag(pos){return `<span class="pos-tag pos-${pos}">${pos==='DST'?'D/ST':pos}</span>`;}
+function scoringNote(){return S.scoring==='PPR'?'PPR':S.scoring==='STD'?'Standard':'Half PPR';}
+function filteredSortedPlayers(){
+  let list = PLAYERS.filter(p=>{
+    if(S.format==='SUPERFLEX'){} // (kept simple) all show
+    if(S.posFilter==='ALL') return true;
+    if(S.posFilter==='FLEX') return ['RB','WR','TE'].includes(p.pos);
+    return p.pos===S.posFilter;
+  });
+  if(S.search) list=list.filter(p=>p.name.toLowerCase().includes(S.search)||p.team.toLowerCase().includes(S.search));
+  const k=S.sortKey,d=S.sortDir;
+  list.sort((a,b)=>{
+    let av=a[k],bv=b[k];
+    if(k==='name'){return a.name.localeCompare(b.name)*d;}
+    return (av-bv)*d;
+  });
+  return list;
+}
+function ppgFor(p){
+  // tweak projection slightly by scoring for realism
+  const m=S.scoring==='PPR'?1.08:S.scoring==='STD'?0.9:1;
+  return (p.projPPG*m).toFixed(1);
+}
+
+/* ============================ RENDER ROUTER ============================ */
+function render(){
+  if(S.view==='home') return renderHome();
+  if(S.view==='rankings') return renderRankings();
+  if(S.view==='trade') return renderTrade();
+  if(S.view==='mock') return renderMock();
+}
+
+/* ============================ HOME ============================ */
+function renderHome(){
+  const top = PLAYERS.slice(0,3).map(p=>p.name).join(' · ');
+  const mockMovers=[
+    ['up','+6','Ashton Jeanty','RB · LV','Camp hype, RB1 reps locked'],
+    ['up','+4','Brian Thomas Jr.','WR · JAX','Target share trending up'],
+    ['down','-5','Travis Kelce','TE · KC','Age + snap count concerns'],
+    ['up','+3','Bucky Irving','RB · TB','Goal-line work secured'],
+    ['down','-3','Stefon Diggs','WR · NE','New offense, slow ramp'],
+  ];
+  const movers = S.liveMovers ? S.liveMovers.map(m=>[m.dir,m.d,m.name,m.meta,m.note]) : mockMovers;
+  vp.innerHTML=`
+  <div class="view">
+    <div class="page-head">
+      <div class="kicker">Command Center</div>
+      <h1>Welcome back, Manager 👋</h1>
+      <p>Your 2026 board, the latest movers, and every tool in one place.</p>
+    </div>
+
+    <div class="grid stat-row" style="margin-bottom:18px">
+      ${stat('413','Players Ranked','Updated today')}
+      ${stat('5','Custom Tiers','On your board')}
+      ${stat(scoringNote(),'Scoring Format','League default')}
+      ${stat('Week 1','Active Week','Season kickoff')}
+    </div>
+
+    <div class="grid dash-grid">
+      <div class="movers panel">
+        <h3>📈 Weekly Movers ${S.liveMovers?'<span style="font-size:10px;color:var(--rb);border:1px solid rgba(34,211,166,.4);padding:2px 7px;border-radius:20px;letter-spacing:.06em">● LIVE</span>':''}</h3>
+        ${movers.map(m=>`
+          <div class="mover">
+            <div class="arrow ${m[0]}">${m[1]}</div>
+            <div>
+              <div class="nm">${m[2]}</div>
+              <div class="mt">${m[3]}</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="mt" style="max-width:170px;text-align:right">${m[4]}</div>
+          </div>`).join('')}
+      </div>
+
+      <div class="grid feat-grid">
+        ${feat('rankings','📋','Rankings','Drag-and-drop your custom board with live tiers, ADP & projections.')}
+        ${feat('trade','🔄','Trade Calc','Stack two sides, get an instant fair-value verdict.')}
+        ${feat('mock','🎯','Mock Draft','Simulate a snake draft vs CPU using live ADP.')}
+        ${feat('rankings','⭐','Top of Board',top)}
+      </div>
+    </div>
+
+    <div class="note">${S.live?'● Live player data from the Sleeper API.':'⚡ Demo build with illustrative 2026 data. Hit <b>Sync Live</b> (top right) to pull the real player universe from Sleeper.'} All rankings are editable and reset on refresh.</div>
+  </div>`;
+  bindFeat();
+}
+function stat(v,l,b){return `<div class="stat"><div class="l">${l}</div><div class="v">${v}</div><div class="badge">${b}</div></div>`;}
+function feat(view,ico,t,p){return `<div class="feat panel" data-go="${view}"><div class="ico">${ico}</div><h3>${t}</h3><p>${p}</p></div>`;}
+function bindFeat(){
+  document.querySelectorAll('[data-go]').forEach(c=>c.addEventListener('click',()=>{
+    S.view=c.dataset.go;
+    document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.view===S.view));
+    render();
+  }));
+}
+
+/* ============================ RANKINGS ============================ */
+function renderRankings(){
+  vp.innerHTML=`
+  <div class="view">
+    <div class="page-head">
+      <div class="kicker">My Board</div>
+      <h1>Fantasy Rankings</h1>
+      <p>Drag rows to reorder · hover between rows to add a tier · sortable columns.</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="seg lime" id="segFormat">
+        <span class="seg-label">Format</span>
+        ${['REDRAFT','SUPERFLEX','DYNASTY 1QB','DYNASTY SF'].map(f=>`<button data-f="${f}" class="${S.format===f?'on':''}">${f}</button>`).join('')}
+      </div>
+      <div class="seg" id="segScoring">
+        <span class="seg-label">Scoring</span>
+        ${[['PPR','PPR'],['HALF','HALF'],['STD','STD']].map(s=>`<button data-s="${s[0]}" class="${S.scoring===s[0]?'on':''}">${s[1]}</button>`).join('')}
+      </div>
+      <div class="seg" id="segView">
+        <button data-v="TABLE" class="${S.rankView==='TABLE'?'on':''}">▦ Table</button>
+        <button data-v="CARDS" class="${S.rankView==='CARDS'?'on':''}">🎴 Tiers</button>
+      </div>
+    </div>
+
+    <div class="poschips" id="posChips" style="margin-bottom:16px">
+      ${['ALL','QB','RB','WR','TE','FLEX','K','DST'].map(p=>`<button class="poschip ${S.posFilter===p?'on':''}" data-pos="${p}">${p==='DST'?'D/ST':p}</button>`).join('')}
+    </div>
+
+    <div id="rkBody"></div>
+  </div>`;
+
+  // bind toolbar
+  $('#segFormat').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;S.format=b.dataset.f;renderRankings();});
+  $('#segScoring').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;S.scoring=b.dataset.s;renderRankings();});
+  $('#segView').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.rankView=b.dataset.v;renderRankings();});
+  $('#posChips').addEventListener('click',e=>{const b=e.target.closest('[data-pos]');if(!b)return;S.posFilter=b.dataset.pos;renderRankings();});
+
+  if(S.rankView==='CARDS') renderTierCards(); else renderTable();
+}
+
+const COLS = "26px 30px minmax(180px,2.2fr) 64px 70px 64px 90px 90px 54px 90px";
+function renderTable(){
+  const list=filteredSortedPlayers();
+  const maxVal=Math.max(...PLAYERS.map(p=>p.value));
+  const head=(key,label,r)=>`<div class="th ${r?'r':''} ${S.sortKey===key?'sorted':''}" data-k="${key}">${label}${r?'':''}<span class="ar">${S.sortDir>0?'▲':'▼'}</span></div>`;
+  let rows='';
+  list.forEach(p=>{
+    if(S.tiers[p.id]){
+      rows+=`<div class="tier-bar"><span class="tn">${S.tiers[p.id]}</span><span class="tl"></span><button class="rmtier" data-id="${p.id}" style="color:var(--faint);font-size:13px">✕</button></div>`;
+    }
+    rows+=`
+    <div class="row" draggable="true" data-id="${p.id}">
+      <div class="td handle" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></div>
+      <div class="td rk-num">${p.rank}</div>
+      <div class="td player-cell">
+        ${posTag(p.pos)}
+        <div><div class="pname">${p.name}</div><div class="pmeta">${p.team} · Bye ${p.bye||'—'}</div></div>
+      </div>
+      <div class="td posrank">${p.posRank}</div>
+      <div class="td r mono">${p.adp.toFixed(1)}</div>
+      <div class="td r mono">${p.age||'—'}</div>
+      <div class="td r mono">${p.projPPG?ppgFor(p):'—'}</div>
+      <div class="td r mono">${p.lastPPG?p.lastPPG.toFixed(1):'—'}</div>
+      <div class="td r"><b class="mono" style="color:var(--acc)">${p.value}</b></div>
+      <div class="td r"><div class="valbar"><i style="width:${(p.value/maxVal*100).toFixed(0)}%"></i></div></div>
+      <button class="tierbtn" data-tier="${p.id}">+ TIER</button>
+    </div>`;
+  });
+  $('#rkBody').innerHTML=`
+    <div class="rk-wrap">
+      <div class="rk-head" style="--cols:${COLS}">
+        <div class="th"></div>
+        ${head('rank','#')}
+        <div class="th">Player</div>
+        <div class="th">Pos</div>
+        ${head('adp','ADP',true)}
+        ${head('age','Age',true)}
+        <div class="th r" data-k="projPPG ">Proj<br>PPG</div>
+        <div class="th r">'25<br>PPG</div>
+        <div class="th r">Value</div>
+        <div class="th r"></div>
+      </div>
+      <div id="rkRows" style="--cols:${COLS}">${rows||'<div style="padding:40px;text-align:center;color:var(--faint)">No players match your filters.</div>'}</div>
+    </div>
+    <div class="note">Showing ${list.length} players · ${scoringNote()} · ${S.format}${S.live?' · ● Live universe from Sleeper, ordered by search rank (Sleeper has no ADP/projections in its free API)':''}</div>`;
+
+  // set --cols on each row container (rows inherit via parent var)
+  $('#rkRows').style.setProperty('--cols',COLS);
+  // sorting
+  document.querySelectorAll('.rk-head .th[data-k]').forEach(th=>{
+    th.style.setProperty('--cols',COLS);
+    th.addEventListener('click',()=>{
+      const k=th.dataset.k.trim();
+      if(S.sortKey===k)S.sortDir*=-1;else{S.sortKey=k;S.sortDir=1;}
+      renderTable();
+    });
+  });
+  // tier add / remove
+  document.querySelectorAll('[data-tier]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.tier;
+    const n=PLAYERS.length;
+    const name=prompt('Name this tier:', 'Tier '+(Object.keys(S.tiers).length+1));
+    if(name){S.tiers[id]=name;renderTable();}
+  }));
+  document.querySelectorAll('.rmtier').forEach(b=>b.addEventListener('click',()=>{delete S.tiers[b.dataset.id];renderTable();}));
+  enableDrag();
+}
+
+function enableDrag(){
+  let dragId=null;
+  document.querySelectorAll('#rkRows .row').forEach(row=>{
+    row.addEventListener('dragstart',e=>{dragId=row.dataset.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    row.addEventListener('dragend',()=>{row.classList.remove('dragging');document.querySelectorAll('.row.over').forEach(r=>r.classList.remove('over'));});
+    row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('over');});
+    row.addEventListener('dragleave',()=>row.classList.remove('over'));
+    row.addEventListener('drop',e=>{
+      e.preventDefault();row.classList.remove('over');
+      const targetId=row.dataset.id;
+      if(dragId===targetId)return;
+      const from=PLAYERS.findIndex(p=>p.id===dragId);
+      const to=PLAYERS.findIndex(p=>p.id===targetId);
+      const [m]=PLAYERS.splice(from,1);
+      PLAYERS.splice(to,0,m);
+      PLAYERS.forEach((p,i)=>p.rank=i+1);
+      recomputePosRank(PLAYERS);
+      // reset to rank sort so manual order shows
+      S.sortKey='rank';S.sortDir=1;
+      renderTable();
+    });
+  });
+}
+
+function renderTierCards(){
+  // Build tiers based on tier breaks in current full order
+  const list=PLAYERS.filter(p=>{
+    if(S.posFilter==='ALL')return true;
+    if(S.posFilter==='FLEX')return['RB','WR','TE'].includes(p.pos);
+    return p.pos===S.posFilter;
+  });
+  // group by tier markers (sorted by rank)
+  list.sort((a,b)=>a.rank-b.rank);
+  const groups=[];let cur=null;
+  list.forEach(p=>{
+    if(S.tiers[p.id]||!cur){cur={name:S.tiers[p.id]||'Tier '+(groups.length+1),items:[]};groups.push(cur);}
+    cur.items.push(p);
+  });
+  $('#rkBody').innerHTML=`<div class="tiercards">${groups.map(g=>`
+    <div class="tcard panel">
+      <div class="th"><span class="tt">${g.name}</span><span class="cnt">${g.items.length} players</span></div>
+      <div class="tchips">${g.items.map(p=>`<div class="tchip">${posTag(p.pos)}<div><div class="nm">${p.name}</div><div class="pmeta" style="font-size:10.5px">${p.team} · #${p.rank}</div></div></div>`).join('')}</div>
+    </div>`).join('')}</div>
+    <div class="note">${groups.length} tiers · ${list.length} players</div>`;
+}
+
+/* ============================ TRADE CALCULATOR ============================ */
+function tradeTotal(side){return side.reduce((s,p)=>s+p.value,0);}
+function renderTrade(){
+  const ta=tradeTotal(S.tradeA),tb=tradeTotal(S.tradeB);
+  const sum=ta+tb;
+  const aPct=sum?Math.round(ta/sum*100):50;
+  let verdict='Add players to evaluate the trade';
+  if(sum){
+    const diff=Math.abs(ta-tb), pct=Math.round(diff/Math.max(ta,tb)*100);
+    if(pct<6)verdict='⚖️ Dead even — fair trade';
+    else verdict=`${ta>tb?'Team A':'Team B'} wins by ${pct}% (${diff} pts)`;
+  }
+  vp.innerHTML=`
+  <div class="view">
+    <div class="page-head">
+      <div class="kicker">Value Engine</div>
+      <h1>Trade Calculator</h1>
+      <p>Build both sides of the deal and get an instant fair-value read.</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="seg lime" id="tFormat">
+        <span class="seg-label">Format</span>
+        ${['REDRAFT','SUPERFLEX','DYNASTY 1QB','DYNASTY SF'].map(f=>`<button data-f="${f}" class="${S.format===f?'on':''}">${f}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="panel trade-grid">
+      ${tradeSide('A',S.tradeA)}
+      <div class="vs"><div class="o">VS</div></div>
+      ${tradeSide('B',S.tradeB)}
+    </div>
+
+    <div class="verdict">
+      <div class="meter"><div class="a" style="width:${aPct}%"></div><div class="b" style="width:${100-aPct}%"></div></div>
+      <div class="vtxt">${verdict}</div>
+    </div>
+    <div class="note">Values use the BLINK dynasty-style curve (#1 overall ≈ 105). Switch formats to reweight.</div>
+  </div>`;
+
+  bindTradeSearch();
+  $('#tFormat').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;S.format=b.dataset.f;renderTrade();});
+}
+function tradeSide(which,arr){
+  const total=tradeTotal(arr);
+  return `<div class="tside">
+    <h3>Team ${which}</h3>
+    <div class="tot">Total Value<b class="mono">${total}</b></div>
+    <div class="drop ${arr.length?'':'empty'}">
+      ${arr.length?arr.map(p=>`
+        <div class="tpick">
+          ${posTag(p.pos)}
+          <div><div class="nm">${p.name}</div><div class="mt">${p.team} · #${p.rank} · ${p.posRank}</div></div>
+          <div class="val mono">${p.value}</div>
+          <button class="x" data-rm="${which}:${p.id}">✕</button>
+        </div>`).join(''):'Drop players here'}
+    </div>
+    <div class="psearch" style="margin-top:10px">
+      <input placeholder="+ Add player to Team ${which}" data-add="${which}" autocomplete="off"/>
+      <div class="presults" data-res="${which}" style="display:none"></div>
+    </div>
+  </div>`;
+}
+function bindTradeSearch(){
+  document.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',()=>{
+    const [w,id]=b.dataset.rm.split(':');
+    if(w==='A')S.tradeA=S.tradeA.filter(p=>p.id!==id);else S.tradeB=S.tradeB.filter(p=>p.id!==id);
+    renderTrade();
+  }));
+  document.querySelectorAll('[data-add]').forEach(inp=>{
+    const which=inp.dataset.add;
+    const res=document.querySelector(`[data-res="${which}"]`);
+    inp.addEventListener('input',()=>{
+      const q=inp.value.trim().toLowerCase();
+      if(!q){res.style.display='none';return;}
+      const used=new Set([...S.tradeA,...S.tradeB].map(p=>p.id));
+      const matches=PLAYERS.filter(p=>!used.has(p.id)&&p.name.toLowerCase().includes(q)).slice(0,8);
+      if(!matches.length){res.style.display='none';return;}
+      res.innerHTML=matches.map(p=>`<div class="pr" data-pick="${which}:${p.id}">${posTag(p.pos)}<div><div class="nm" style="font-weight:700;font-size:13px">${p.name}</div><div class="pmeta">${p.team} · #${p.rank}</div></div><div class="val mono">${p.value}</div></div>`).join('');
+      res.style.display='block';
+      res.querySelectorAll('[data-pick]').forEach(r=>r.addEventListener('click',()=>{
+        const [w,id]=r.dataset.pick.split(':');
+        const pl=PLAYERS.find(p=>p.id===id);
+        if(w==='A')S.tradeA.push(pl);else S.tradeB.push(pl);
+        renderTrade();
+      }));
+    });
+    inp.addEventListener('blur',()=>setTimeout(()=>{if(res)res.style.display='none';},180));
+  });
+}
+
+/* ============================ MOCK DRAFT ============================ */
+function defaultDraftCfg(){return {teams:12, slot:1, rounds:8, lineup:{QB:1,RB:2,WR:2,TE:1,FLEX:1,BENCH:1}};}
+let mockCfg = defaultDraftCfg();
+
+function renderMock(){
+  if(S.draft) return renderDraftLive();
+  vp.innerHTML=`
+  <div class="view">
+    <div class="page-head">
+      <div class="kicker">Practice Reps</div>
+      <h1>Mock Draft</h1>
+      <p>Snake draft against CPU managers using live ADP. Set it up, then you're on the clock.</p>
+    </div>
+
+    <div class="draft-cfg">
+      <div class="cfg panel">
+        <label>Teams</label>
+        ${stepper('teams',mockCfg.teams,8,16)}
+      </div>
+      <div class="cfg panel">
+        <label>Your Pick</label>
+        ${stepper('slot',mockCfg.slot,1,mockCfg.teams)}
+      </div>
+      <div class="cfg panel">
+        <label>Rounds</label>
+        ${stepper('rounds',mockCfg.rounds,4,16)}
+      </div>
+      <div class="cfg panel">
+        <label>Format</label>
+        <div class="seg lime" id="mFormat" style="flex-wrap:wrap">
+          ${['REDRAFT','SUPERFLEX'].map(f=>`<button data-f="${f}" class="${S.format===f?'on':''}">${f}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="cfg panel" style="margin-bottom:18px">
+      <label>Starting Lineup</label>
+      <div style="display:flex;flex-wrap:wrap;gap:18px">
+        ${Object.entries(mockCfg.lineup).map(([k,v])=>`<div style="text-align:center"><div style="font-size:11px;color:var(--faint);font-weight:700;letter-spacing:.08em;margin-bottom:6px">${k}</div>${stepper('L_'+k,v,0,8)}</div>`).join('')}
+      </div>
+    </div>
+
+    <button class="bigbtn" id="startDraft">▶ START DRAFT</button>
+    <div class="note">CPU picks by ADP with a little randomness. Roster size = sum of starters + bench.</div>
+  </div>`;
+
+  document.querySelectorAll('[data-step]').forEach(grp=>{
+    grp.querySelector('.minus').addEventListener('click',()=>adjust(grp.dataset.step,-1));
+    grp.querySelector('.plus').addEventListener('click',()=>adjust(grp.dataset.step,1));
+  });
+  $('#mFormat').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;S.format=b.dataset.f;renderMock();});
+  $('#startDraft').addEventListener('click',startDraft);
+}
+function stepper(key,val,min,max){
+  return `<div class="stepper" data-step="${key}" data-min="${min}" data-max="${max}">
+    <button class="minus">−</button><span class="val">${val}</span><button class="plus">+</button></div>`;
+}
+function adjust(key,delta){
+  const grp=document.querySelector(`[data-step="${key}"]`);
+  const min=+grp.dataset.min,max=+grp.dataset.max;
+  if(key.startsWith('L_')){
+    const k=key.slice(2);
+    mockCfg.lineup[k]=Math.max(min,Math.min(max,mockCfg.lineup[k]+delta));
+  }else{
+    mockCfg[key]=Math.max(min,Math.min(max,mockCfg[key]+delta));
+    if(key==='teams'&&mockCfg.slot>mockCfg.teams)mockCfg.slot=mockCfg.teams;
+  }
+  renderMock();
+}
+
+function rosterSize(){return Object.values(mockCfg.lineup).reduce((a,b)=>a+b,0);}
+function startDraft(){
+  const teams=mockCfg.teams, rounds=mockCfg.rounds;
+  const order=[];
+  for(let r=0;r<rounds;r++){
+    const base=[...Array(teams).keys()];
+    const seq = r%2===0?base:base.slice().reverse();
+    seq.forEach(t=>order.push(t));
+  }
+  S.draft={
+    teams, rounds, order,
+    pickIndex:0,
+    mySlot:mockCfg.slot-1,
+    pool:PLAYERS.slice().sort((a,b)=>a.adp-b.adp),
+    rosters:Array.from({length:teams},()=>[]),
+    log:[],
+  };
+  renderDraftLive();
+  advanceDraft();
+}
+function isMyTurn(){const d=S.draft;return d.order[d.pickIndex]===d.mySlot;}
+function pickInfo(){const d=S.draft;const overall=d.pickIndex+1;const round=Math.floor(d.pickIndex/d.teams)+1;const inRound=(d.pickIndex%d.teams)+1;return{overall,round,inRound};}
+
+function advanceDraft(){
+  const d=S.draft;
+  if(!d) return;
+  if(d.pickIndex>=d.order.length){return finishDraft();}
+  if(isMyTurn()){renderDraftLive();return;} // wait for user
+  // CPU picks after a short delay
+  renderDraftLive();
+  setTimeout(()=>{
+    if(!S.draft)return;
+    const team=d.order[d.pickIndex];
+    // weighted-ish: take from top 4 of pool with bias to #1
+    const top=d.pool.slice(0,4);
+    const weights=[0.6,0.22,0.12,0.06].slice(0,top.length);
+    let r=Math.random(),acc=0,choice=top[0];
+    for(let i=0;i<top.length;i++){acc+=weights[i];if(r<=acc){choice=top[i];break;}}
+    commitPick(team,choice);
+  },420);
+}
+function commitPick(team,player){
+  const d=S.draft;
+  d.pool=d.pool.filter(p=>p.id!==player.id);
+  d.rosters[team].push(player);
+  const info=pickInfo();
+  d.log.unshift({team,player,...info});
+  d.pickIndex++;
+  if(d.pickIndex>=d.order.length){finishDraft();return;}
+  advanceDraft();
+}
+function userPick(id){
+  const d=S.draft;if(!isMyTurn())return;
+  const pl=d.pool.find(p=>p.id===id);if(!pl)return;
+  commitPick(d.mySlot,pl);
+}
+function finishDraft(){renderDraftLive(true);}
+
+function renderDraftLive(done){
+  const d=S.draft;
+  const my=d.rosters[d.mySlot];
+  const info=pickInfo();
+  const onClock=done?null:isMyTurn();
+
+  // build lineup slots for my roster display
+  const slots=[];
+  const cfgL=mockCfg.lineup;
+  ['QB','RB','WR','TE','FLEX','BENCH'].forEach(k=>{for(let i=0;i<cfgL[k];i++)slots.push(k);});
+  const used=new Set();
+  const filled=slots.map(slot=>{
+    const eligible=p=>{
+      if(used.has(p.id))return false;
+      if(slot==='FLEX')return['RB','WR','TE'].includes(p.pos);
+      if(slot==='BENCH')return true;
+      return p.pos===slot;
+    };
+    const pick=my.find(eligible);
+    if(pick)used.add(pick.id);
+    return{slot,pick};
+  });
+
+  vp.innerHTML=`
+  <div class="view">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
+      <div>
+        <div class="kicker">Mock Draft · ${S.format} · ${d.teams} teams</div>
+        <h1>${done?'Draft Complete 🏆':'On the Clock'}</h1>
+      </div>
+      <button class="bigbtn ghost" id="newDraft">↺ New Draft</button>
+    </div>
+
+    ${done?'':`
+    <div class="clock ${onClock?'you':'cpu'}">
+      <div>
+        <div class="lbl">${onClock?'🟢 YOUR PICK':'🤖 CPU is drafting…'}</div>
+        <div class="sub">Round ${info.round} · Pick ${info.inRound} · Overall ${info.overall}</div>
+      </div>
+      <div class="pickno">PICK ${info.overall}/${d.order.length}</div>
+    </div>`}
+
+    <div class="draft-live">
+      <div>
+        <div class="section-title">${done?'Best Available (Undrafted)':'Available Players'}</div>
+        <div class="avail panel">
+          ${d.pool.slice(0,60).map(p=>`
+            <div class="av-row" data-pick="${p.id}">
+              <div class="rk">${p.rank}</div>
+              <div class="player-cell">${posTag(p.pos)}<div><div class="pname">${p.name}</div><div class="pmeta">${p.team} · ${p.posRank}</div></div></div>
+              <div class="adp">ADP ${p.adp.toFixed(1)}</div>
+              <div class="pickme">${onClock?'DRAFT →':''}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Your Roster</div>
+        <div class="roster panel" style="margin-bottom:18px">
+          ${filled.map(f=>`<div class="slot"><span class="pos">${f.slot}</span>${f.pick?`${posTag(f.pick.pos)}<span class="fill">${f.pick.name}</span><span class="pmeta" style="margin-left:auto">${f.pick.team}</span>`:'<span class="empty">— empty —</span>'}</div>`).join('')}
+        </div>
+        <div class="section-title">Draft Log</div>
+        <div class="log panel">
+          ${d.log.slice(0,40).map(l=>`<div class="li ${l.team===d.mySlot?'mine':''}"><span class="pk">${l.round}.${String(l.inRound).padStart(2,'0')}</span><span>${l.team===d.mySlot?'⭐ You':'Team '+(l.team+1)} — <b>${l.player.name}</b> ${l.player.pos}</span></div>`).join('')||'<div style="padding:14px;color:var(--faint);font-size:12px">No picks yet…</div>'}
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  $('#newDraft').addEventListener('click',()=>{S.draft=null;renderMock();});
+  if(onClock){
+    document.querySelectorAll('[data-pick]').forEach(r=>r.addEventListener('click',()=>userPick(r.dataset.pick)));
+  }
+}
+
+/* ============================ SLEEPER LIVE DATA ============================ */
+const SLEEPER='https://api.sleeper.app/v1';
+let SLEEPER_MAP={}; // raw player_id -> {name,pos,team}
+const FANTASY_POS=new Set(['QB','RB','WR','TE','K','DEF']);
+
+function reseedTiers(){
+  S.tiers={};
+  if(PLAYERS[0]) S.tiers[PLAYERS[0].id]='Tier 1 · Elite';
+  if(PLAYERS[5]) S.tiers[PLAYERS[5].id]='Tier 2 · Studs';
+  if(PLAYERS[12]) S.tiers[PLAYERS[12].id]='Tier 3 · Building Blocks';
+  if(PLAYERS[23]) S.tiers[PLAYERS[23].id]='Tier 4 · Value';
+  if(PLAYERS[40]) S.tiers[PLAYERS[40].id]='Tier 5 · Upside';
+}
+
+function buildFromSleeper(data){
+  const arr=[];
+  SLEEPER_MAP={};
+  for(const id in data){
+    const p=data[id];
+    if(!p||p.search_rank==null) continue;
+    let pos=p.position;
+    if(pos==='DEF') pos='DST';
+    if(!['QB','RB','WR','TE','K','DST'].includes(pos)) continue;
+    if(pos!=='DST' && p.status && p.status!=='Active') continue;
+    if(!p.team) continue; // unsigned free agents skipped
+    let name;
+    if(pos==='DST') name=((p.first_name?p.first_name+' ':'')+(p.last_name||p.team))+' D/ST';
+    else name=((p.first_name||'')+' '+(p.last_name||'')).trim();
+    if(!name) continue;
+    SLEEPER_MAP[id]={name,pos,team:p.team};
+    arr.push({raw:id,name,pos,team:p.team,age:p.age||0,sr:p.search_rank});
+  }
+  arr.sort((a,b)=>a.sr-b.sr);
+  const top=arr.slice(0,280);
+  PLAYERS=top.map((p,i)=>({
+    id:'sl'+p.raw, name:p.name, pos:p.pos, team:p.team,
+    adp:i+1, projPPG:0, lastPPG:0, age:p.age, bye:TEAMS_BYE[p.team]||0,
+    rank:i+1, value:Math.max(1,Math.round(105*Math.exp(-(i)/26)))
+  }));
+  recomputePosRank(PLAYERS);
+  reseedTiers();
+}
+
+async function loadMovers(){
+  try{
+    const [aR,dR]=await Promise.all([
+      fetch(SLEEPER+'/players/nfl/trending/add?limit=6'),
+      fetch(SLEEPER+'/players/nfl/trending/drop?limit=4'),
+    ]);
+    const adds=await aR.json(), drops=await dR.json();
+    const m=[];
+    adds.forEach(a=>{const p=SLEEPER_MAP[a.player_id];if(p)m.push({dir:'up',d:'+'+a.count.toLocaleString(),name:p.name,meta:p.pos+' · '+p.team,note:'Trending add (24h)'});});
+    drops.forEach(x=>{const p=SLEEPER_MAP[x.player_id];if(p)m.push({dir:'down',d:'−'+x.count.toLocaleString(),name:p.name,meta:p.pos+' · '+p.team,note:'Trending drop (24h)'});});
+    S.liveMovers=m.length?m:null;
+  }catch(e){S.liveMovers=null;}
+}
+
+async function syncLive(){
+  if(S.syncing) return;
+  S.syncing=true; updateSyncBtn();
+  showToast('Fetching live players from Sleeper…');
+  try{
+    const res=await fetch(SLEEPER+'/players/nfl');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    buildFromSleeper(data);
+    await loadMovers();
+    S.live=true;
+    S.tradeA=[];S.tradeB=[];S.draft=null;
+    S.syncMsg='● Live · '+PLAYERS.length+' players from Sleeper';
+    showToast('Loaded '+PLAYERS.length+' live players. Note: Sleeper has no ADP/projections — board ordered by Sleeper search rank.');
+  }catch(err){
+    S.syncMsg='';
+    showToast('⚠️ Live sync blocked in this preview (sandbox/CORS). It will work once you host the site. Showing demo data.');
+  }
+  S.syncing=false;
+  updateSyncBtn();
+  render();
+}
+
+function updateSyncBtn(){
+  const b=document.getElementById('syncBtn');
+  if(!b) return;
+  b.classList.toggle('busy',S.syncing);
+  b.classList.toggle('live',S.live && !S.syncing);
+  b.querySelector('.t').textContent = S.syncing?'Syncing…':(S.live?'Live':'Sync Live');
+}
+
+let toastTimer=null;
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;
+  requestAnimationFrame(()=>t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),5200);
+}
+
+document.getElementById('syncBtn').addEventListener('click',syncLive);
+
+/* ============================ BOOT ============================ */
+render();
+</script>
+</body>
+</html>
