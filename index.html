@@ -179,7 +179,8 @@ input{font-family:inherit}
 
 /* ---------- Rankings table ---------- */
 .rk-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
-.rk-head{display:grid;grid-template-columns:var(--cols);gap:0;padding:0 14px;background:var(--bg2);border-bottom:1px solid var(--line2);position:sticky;top:69px;z-index:10}
+.rk-scroll{max-height:calc(100vh - 300px);min-height:320px;overflow:auto}
+.rk-head{display:grid;grid-template-columns:var(--cols);gap:0;padding:0 14px;background:var(--bg2);border-bottom:1px solid var(--line2);position:sticky;top:0;z-index:5}
 .rk-head .th{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;padding:13px 8px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px}
 .rk-head .th.r{justify-content:flex-end}
 .rk-head .th .ar{opacity:0;font-size:9px}
@@ -337,6 +338,39 @@ input{font-family:inherit}
   font-size:13px;font-weight:600;box-shadow:var(--shadow);opacity:0;transition:.3s;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(max-width:900px){.syncbtn span.t{display:none}.toast{bottom:78px}}
+.pscrim{position:fixed;inset:0;background:rgba(3,6,12,.6);backdrop-filter:blur(2px);z-index:90;opacity:0;pointer-events:none;transition:.25s}
+.pscrim.open{opacity:1;pointer-events:auto}
+.pdrawer{position:fixed;top:0;right:0;height:100vh;width:420px;max-width:92vw;z-index:95;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));border-left:1px solid var(--line2);
+  box-shadow:-30px 0 60px -20px rgba(0,0,0,.7);transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden}
+.pdrawer.open{transform:translateX(0)}
+.pd-head{padding:22px 22px 18px;border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+.pd-head::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(200,255,61,.12),transparent 70%)}
+.pd-close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:18px;display:grid;place-items:center;z-index:2}
+.pd-close:hover{color:var(--warn);border-color:var(--warn)}
+.pd-name{font-family:'Saira';font-weight:800;font-size:26px;line-height:1.05;margin:10px 0 6px}
+.pd-sub{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.pd-body{padding:20px 22px;overflow:auto;flex:1}
+.pd-kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:22px}
+.pd-kpi{background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:12px 13px;text-align:center}
+.pd-kpi .v{font-family:'Saira';font-weight:800;font-size:21px}
+.pd-kpi .l{font-size:10px;color:var(--faint);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.pd-sec{font-family:'Saira';font-weight:800;font-size:12px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.pd-sec .live{font-size:9px;color:var(--rb);border:1px solid rgba(34,211,166,.4);padding:2px 6px;border-radius:20px;letter-spacing:.06em}
+.szn{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.szn .yr{font-family:'JetBrains Mono';font-weight:700;font-size:12px;width:36px;color:var(--muted)}
+.szn .track{flex:1;height:22px;background:var(--panel2);border-radius:7px;overflow:hidden;position:relative}
+.szn .track i{display:block;height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc));border-radius:7px;min-width:2px;transition:width .5s ease}
+.szn .pts{font-family:'Saira';font-weight:800;font-size:14px;width:64px;text-align:right}
+.szn .gp{font-size:10.5px;color:var(--faint);width:42px;text-align:right}
+.pd-total{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px;background:rgba(200,255,61,.07);border:1px solid rgba(200,255,61,.25);border-radius:13px;margin-top:6px}
+.pd-total .l{font-size:12px;color:var(--muted);font-weight:600}
+.pd-total .v{font-family:'Saira';font-weight:800;font-size:24px;color:var(--acc)}
+.pd-msg{color:var(--muted);font-size:13px;line-height:1.6;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+.pd-spin{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;padding:10px 0}
+.pd-spin .s{width:16px;height:16px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}
+@media(max-width:900px){.pdrawer{width:100%}}
 </style>
 </head>
 <body>
@@ -690,21 +724,23 @@ function renderTable(){
   });
   $('#rkBody').innerHTML=`
     <div class="rk-wrap">
-      <div class="rk-head" style="--cols:${COLS}">
-        <div class="th"></div>
-        ${head('rank','#')}
-        <div class="th">Player</div>
-        <div class="th">Pos</div>
-        ${head('adp','ADP',true)}
-        ${head('age','Age',true)}
-        <div class="th r" data-k="projPPG ">Proj<br>PPG</div>
-        <div class="th r">'25<br>PPG</div>
-        <div class="th r">Value</div>
-        <div class="th r"></div>
+      <div class="rk-scroll" style="--cols:${COLS}">
+        <div class="rk-head" style="--cols:${COLS}">
+          <div class="th"></div>
+          ${head('rank','#')}
+          <div class="th">Player</div>
+          <div class="th">Pos</div>
+          ${head('adp','ADP',true)}
+          ${head('age','Age',true)}
+          <div class="th r" data-k="projPPG ">Proj<br>PPG</div>
+          <div class="th r">'25<br>PPG</div>
+          <div class="th r">Value</div>
+          <div class="th r"></div>
+        </div>
+        <div id="rkRows" style="--cols:${COLS}">${rows||'<div style="padding:40px;text-align:center;color:var(--faint)">No players match your filters.</div>'}</div>
       </div>
-      <div id="rkRows" style="--cols:${COLS}">${rows||'<div style="padding:40px;text-align:center;color:var(--faint)">No players match your filters.</div>'}</div>
     </div>
-    <div class="note">Showing ${list.length} players · ${scoringNote()} · ${S.format}${S.live?' · ● Live universe from Sleeper, ordered by search rank (Sleeper has no ADP/projections in its free API)':''}</div>`;
+    <div class="note">Showing ${list.length} players · ${scoringNote()} · ${S.format} · click any player for career detail${S.live?' · ● Live universe from Sleeper, ordered by search rank (Sleeper has no ADP/projections in its free API)':''}</div>`;
 
   // set --cols on each row container (rows inherit via parent var)
   $('#rkRows').style.setProperty('--cols',COLS);
@@ -725,6 +761,14 @@ function renderTable(){
     if(name){S.tiers[id]=name;renderTable();}
   }));
   document.querySelectorAll('.rmtier').forEach(b=>b.addEventListener('click',()=>{delete S.tiers[b.dataset.id];renderTable();}));
+  // click a row to open the player detail drawer
+  document.querySelectorAll('#rkRows .row').forEach(row=>{
+    row.style.cursor='pointer';
+    row.addEventListener('click',e=>{
+      if(e.target.closest('.handle')||e.target.closest('.tierbtn')||e.target.closest('.rmtier')) return;
+      openPlayer(row.dataset.id);
+    });
+  });
   enableDrag();
 }
 
@@ -1167,6 +1211,91 @@ function showToast(msg){
 }
 
 document.getElementById('syncBtn').addEventListener('click',syncLive);
+
+/* ============================ PLAYER DETAIL DRAWER ============================ */
+function ensureDrawer(){
+  if(document.getElementById('pdrawer')) return;
+  const scrim=document.createElement('div');scrim.id='pscrim';scrim.className='pscrim';
+  scrim.addEventListener('click',closePlayer);
+  const d=document.createElement('div');d.id='pdrawer';d.className='pdrawer';
+  document.body.appendChild(scrim);document.body.appendChild(d);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePlayer();});
+}
+function closePlayer(){
+  const d=document.getElementById('pdrawer'),s=document.getElementById('pscrim');
+  if(d)d.classList.remove('open');if(s)s.classList.remove('open');
+}
+function scoringPtsKey(){return S.scoring==='PPR'?'pts_ppr':S.scoring==='STD'?'pts_std':'pts_half_ppr';}
+
+function openPlayer(id){
+  ensureDrawer();
+  const p=PLAYERS.find(x=>x.id===id); if(!p) return;
+  const d=document.getElementById('pdrawer'),s=document.getElementById('pscrim');
+  d.innerHTML=`
+    <div class="pd-head">
+      <button class="pd-close" onclick="closePlayer()">✕</button>
+      ${posTag(p.pos)}
+      <div class="pd-name">${p.name}</div>
+      <div class="pd-sub"><span>${p.team}</span><span>•</span><span>Bye ${p.bye||'—'}</span><span>•</span><span>Age ${p.age||'—'}</span></div>
+    </div>
+    <div class="pd-body">
+      <div class="pd-kpis">
+        <div class="pd-kpi"><div class="v">#${p.rank}</div><div class="l">Overall</div></div>
+        <div class="pd-kpi"><div class="v">${p.posRank}</div><div class="l">Pos Rank</div></div>
+        <div class="pd-kpi"><div class="v" style="color:var(--acc)">${p.value}</div><div class="l">Trade Val</div></div>
+      </div>
+      <div class="pd-sec">Career Fantasy Points (${scoringNote()})<span id="pdLiveBadge"></span></div>
+      <div id="pdCareer"><div class="pd-spin"><span class="s"></span> Loading career data…</div></div>
+    </div>`;
+  requestAnimationFrame(()=>{d.classList.add('open');s.classList.add('open');});
+  loadCareer(p);
+}
+
+async function loadCareer(p){
+  const box=document.getElementById('pdCareer');
+  const rawId = p.id.startsWith('sl') ? p.id.slice(2) : null;
+  if(!rawId){
+    box.innerHTML=`<div class="pd-msg">Career fantasy totals are pulled live from Sleeper using each player's real ID. Hit <b>Sync Live</b> (top right) to load the real player universe, then reopen this player to see their full season-by-season history.${p.lastPPG?'<br><br>From the demo board, '+p.name+' averaged about <b>'+p.lastPPG.toFixed(1)+'</b> PPG last season.':''}</div>`;
+    return;
+  }
+  try{
+    const url=`https://api.sleeper.com/stats/nfl/player/${rawId}?season_type=regular&grouping=season`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const key=scoringPtsKey();
+    const seasons=[];
+    for(const yr in data){
+      const v=data[yr]; if(!v) continue;
+      const st=v.stats?v.stats:v;
+      let pts=st[key]; if(pts==null) pts=st.pts_half_ppr??st.pts_ppr??st.pts_std;
+      pts=Number(pts);
+      const gp=Number(st.gp||st.gms_active||0);
+      if(isFinite(pts)&&pts>0) seasons.push({yr:+yr,pts,gp});
+    }
+    seasons.sort((a,b)=>a.yr-b.yr);
+    const recent=seasons.slice(-9);
+    if(!recent.length){
+      box.innerHTML=`<div class="pd-msg">No historical fantasy scoring found for ${p.name}. This is common for rookies, or because Sleeper's stats endpoint (which is unofficial) didn't return data.</div>`;
+      return;
+    }
+    document.getElementById('pdLiveBadge').innerHTML='<span class="live">● LIVE</span>';
+    const max=Math.max(...recent.map(s=>s.pts));
+    const total=seasons.reduce((a,s)=>a+s.pts,0);
+    box.innerHTML=`
+      ${recent.map(s=>`
+        <div class="szn">
+          <span class="yr">${s.yr}</span>
+          <span class="track"><i style="width:${(s.pts/max*100).toFixed(0)}%"></i></span>
+          <span class="pts">${s.pts.toFixed(1)}</span>
+          <span class="gp">${s.gp?s.gp+'g':'—'}</span>
+        </div>`).join('')}
+      <div class="pd-total"><span class="l">Career total (${recent.length===seasons.length?recent.length:seasons.length} seasons)</span><span class="v">${total.toFixed(1)}</span></div>
+      <div class="pd-msg" style="margin-top:14px;font-size:11.5px">Fantasy points from Sleeper, ${scoringNote()} scoring, regular season only. Data via the Sleeper API (unofficial stats endpoint).</div>`;
+  }catch(err){
+    box.innerHTML=`<div class="pd-msg">Couldn't load live career stats right now. Sleeper's historical stats endpoint is unofficial and occasionally unavailable. The rest of the app is unaffected — try again in a moment.</div>`;
+  }
+}
 
 /* ============================ BOOT ============================ */
 render();
