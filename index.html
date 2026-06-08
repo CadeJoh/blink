@@ -409,6 +409,14 @@ input{font-family:inherit}
 </div>
 
 <script>
+/* ============================================================
+   CONFIG — paste your Cloudflare Worker URL between the quotes
+   below to power live 2026 ADP + trade values. Leave it empty
+   to fall back to pulling the player list directly from Sleeper.
+   Example: const DATA_API = "https://blink-data.yourname.workers.dev";
+   ============================================================ */
+const DATA_API = "https://blink-data.cmcjcontact.workers.dev/";
+
 /* ============================ DATA ============================ */
 /* Illustrative 2026 mock data — values approximate, fully editable in-app. */
 const TEAMS_BYE = {KC:10,BUF:7,PHI:5,DET:8,SF:14,DAL:7,MIA:12,CIN:10,BAL:7,HOU:6,
@@ -529,7 +537,7 @@ const S = {
   // mock draft
   draft:null,
   // live data (Sleeper)
-  live:false, syncing:false, liveMovers:null, syncMsg:'',
+  live:false, syncing:false, liveMovers:null, syncMsg:'', adpReal:false,
 };
 // seed a couple tiers
 S.tiers[PLAYERS[0].id]='Tier 1 · Elite';
@@ -740,7 +748,7 @@ function renderTable(){
         <div id="rkRows" style="--cols:${COLS}">${rows||'<div style="padding:40px;text-align:center;color:var(--faint)">No players match your filters.</div>'}</div>
       </div>
     </div>
-    <div class="note">Showing ${list.length} players · ${scoringNote()} · ${S.format} · click any player for career detail${S.live?' · ● Live universe from Sleeper, ordered by search rank (Sleeper has no ADP/projections in its free API)':''}</div>`;
+    <div class="note">Showing ${list.length} players · ${scoringNote()} · ${S.format} · click any player for career detail${S.adpReal?' · ● Live 2026 ADP via Fantasy Football Calculator + Sleeper IDs':(S.live?' · ● Live universe from Sleeper, ordered by search rank (no ADP in the free Sleeper API)':'')}</div>`;
 
   // set --cols on each row container (rows inherit via parent var)
   $('#rkRows').style.setProperty('--cols',COLS);
@@ -1155,6 +1163,30 @@ function buildFromSleeper(data){
   reseedTiers();
 }
 
+// Build the board from the Cloudflare Worker's merged feed
+// (real 2026 ADP + trade values + Sleeper IDs)
+function buildFromMerged(arr){
+  SLEEPER_MAP={};
+  const list=(arr||[]).filter(p=>p&&p.name&&p.pos).slice(0,300);
+  PLAYERS=list.map((p,i)=>{
+    const sid=p.sleeperId||p.sleeper_id||null;
+    if(sid) SLEEPER_MAP[sid]={name:p.name,pos:p.pos,team:p.team};
+    return {
+      id: sid?('sl'+sid):('m'+i),
+      name:p.name, pos:p.pos, team:p.team,
+      adp: (typeof p.adp==='number'&&p.adp>0)?p.adp:(i+1),
+      projPPG:0, lastPPG:0,
+      age:p.age||0, bye:p.bye||TEAMS_BYE[p.team]||0,
+      rank:i+1,
+      value:(typeof p.value==='number'&&p.value>0)?Math.round(p.value):Math.max(1,Math.round(105*Math.exp(-(i)/26)))
+    };
+  });
+  PLAYERS.sort((a,b)=>a.adp-b.adp);
+  PLAYERS.forEach((p,i)=>p.rank=i+1);
+  recomputePosRank(PLAYERS);
+  reseedTiers();
+}
+
 async function loadMovers(){
   try{
     const [aR,dR]=await Promise.all([
@@ -1172,20 +1204,35 @@ async function loadMovers(){
 async function syncLive(){
   if(S.syncing) return;
   S.syncing=true; updateSyncBtn();
-  showToast('Fetching live players from Sleeper…');
   try{
-    const res=await fetch(SLEEPER+'/players/nfl');
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    buildFromSleeper(data);
-    await loadMovers();
-    S.live=true;
-    S.tradeA=[];S.tradeB=[];S.draft=null;
-    S.syncMsg='● Live · '+PLAYERS.length+' players from Sleeper';
-    showToast('Loaded '+PLAYERS.length+' live players. Note: Sleeper has no ADP/projections — board ordered by Sleeper search rank.');
+    if(DATA_API){
+      showToast('Fetching live 2026 ADP from your data feed…');
+      const res=await fetch(DATA_API);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const arr=await res.json();
+      buildFromMerged(arr);
+      S.adpReal=true;
+      await loadMovers();
+      S.live=true;
+      S.tradeA=[];S.tradeB=[];S.draft=null;
+      S.syncMsg='● Live · '+PLAYERS.length+' players with 2026 ADP';
+      showToast('Loaded '+PLAYERS.length+' players with live 2026 ADP + trade values.');
+    }else{
+      showToast('Fetching live players from Sleeper…');
+      const res=await fetch(SLEEPER+'/players/nfl');
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data=await res.json();
+      buildFromSleeper(data);
+      S.adpReal=false;
+      await loadMovers();
+      S.live=true;
+      S.tradeA=[];S.tradeB=[];S.draft=null;
+      S.syncMsg='● Live · '+PLAYERS.length+' players from Sleeper';
+      showToast('Loaded '+PLAYERS.length+' live players. (No Worker set — add one for real 2026 ADP. Board ordered by Sleeper search rank for now.)');
+    }
   }catch(err){
     S.syncMsg='';
-    showToast('⚠️ Live sync blocked in this preview (sandbox/CORS). It will work once you host the site. Showing demo data.');
+    showToast('⚠️ Live sync failed ('+(DATA_API?'check your Worker URL':'sandbox/CORS in preview')+'). Showing current data.');
   }
   S.syncing=false;
   updateSyncBtn();
